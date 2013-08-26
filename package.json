@@ -1,15 +1,18 @@
 {
-  "name"     : "n-step",
-  "version"  : "0.0.0",
+  "name"        : "n-step",
+  "version"     : "0.0.0",
   "description" : "Next Step",
-  "main"     : "index.js",
-  "scripts"  : {
-    "test"   : "make test-pre"
+  "main"        : "index.js",
+  "scripts"     : {
+    "test"      : "make test-pre"
   },
   "devDependencies": {
-    "mocha"     : "*",
-    "expect.js" : "*",
-    "coffee"    : "*"
+    "mocha"      : "*",
+    "expect.js"  : "*",
+    "coffee"     : "*",
+    "connect"    : "*",
+    "event-pipe" : "*",
+    "mysql"      : "*"
   },
   "repository": {
     "type"   : "git",
