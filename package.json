@@ -7,10 +7,13 @@
     "test"           : "make test-pre"
   },
   "devDependencies": {
+    "connect"        : "*",
+    "pm"             : "*",
+    "argparse"       : "*",
+    "clone"          : "*",
     "mocha"          : "*",
     "expect.js"      : "*",
     "coffee-script"  : "*",
-    "connect"        : "*",
     "event-pipe"     : "*",
     "mysql"          : "*",
     "options-stream" : "*"
