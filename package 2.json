@@ -1,0 +1,12 @@
+{
+    "main"           : "app.js",
+    "devDependencies": {
+      "mocha"          : "*",
+      "expect.js"      : "*",
+      "connect"        : "*",
+      "pm"             : "*",
+      "argparse"       : "*",
+      "clone"          : "*"
+    }
+}
+
