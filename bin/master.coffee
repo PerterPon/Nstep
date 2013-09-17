@@ -1,8 +1,13 @@
-fs   = require 'fs'
-path = require 'path'
-aio  = require '../lib/aio-server'
+"use strict"
 
-web = aio()
+require 'js-yaml'
+
+fs      = require 'fs'
+path    = require 'path'
+aio     = require '../lib/aio-server'
+options = require '../conf/conf.yaml'
+
+web = aio options
 
 # onquit
 quit = ->
@@ -26,5 +31,6 @@ process.on 'uncaughtException', (err)->
   console.log "---------"
   console.log err.stack
   quit()
+  
 web.start ( port ) ->
   console.log 'listening:', port

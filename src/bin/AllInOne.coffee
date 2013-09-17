@@ -9,7 +9,6 @@ class AllInOne
 
   start : () ->
     
-
   close : ( cb ) ->
     cb?()
 

@@ -16,14 +16,18 @@
     "coffee-script"  : "*",
     "event-pipe"     : "*",
     "mysql"          : "*",
-    "options-stream" : "*"
+    "options-stream" : "*",
+    "justlog"        : "*",
+    "underscore"     : "*",
+    "js-yaml"        : "*",
+    "mkdirp"         : "*"
   },
   "repository"   : {
     "type"           : "git",
     "url"            : "git://github.com/PerterPon/Nstep.git"
   },
   "keywords"     : [
-    "nodejs"
+    "nodejs", "coffeescript"
   ],
   "author"       : "PerterPon",
   "license"          : "BSD",

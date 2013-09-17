@@ -35,7 +35,9 @@ test:
 	@echo "\033[31m begin unit test!\033[39;49;0m\n"
 	@$(-MOCHA) \
 		--colors \
+		--compilers coffee:coffee-script \
 		--reporter spec \
+		--growl \
 		$(TESTS)
 
 npm-install:

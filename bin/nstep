@@ -1,0 +1,20 @@
+#!/bin/bash
+cmd=$1
+start() {
+  if [ ! -x './master.coffee' ]; then
+    nohup /usr/bin/env coffee ./master.coffee > ../run/master.out 2>&1 &;
+  elif [ ! -x './master.js' ] ; then
+    nohup /usr/bin/env node ./master.coffee  > ../run/master.out 2>&1 &;
+  fi
+  echo 'master server start!'
+}
+case $cmd in
+  start)
+    start;
+    exit $?;
+  ;;
+  stop)
+    stop;
+    exit $?;
+  ;;
+esac

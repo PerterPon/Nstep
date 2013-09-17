@@ -1,0 +1,6 @@
+
+mastersock : ../run/master.sock
+
+log_dir   : ../logs
+
+run_dir    : ../run
