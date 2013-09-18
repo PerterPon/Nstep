@@ -2,11 +2,14 @@
 cmd=$1
 start() {
   if [ ! -x './master.coffee' ]; then
-    nohup /usr/bin/env coffee ./master.coffee > ../run/master.out 2>&1 &;
+    nohup /usr/bin/env coffee ./master.coffee 2>&1 >> ../logs/nodejs_stdout.log &
   elif [ ! -x './master.js' ] ; then
-    nohup /usr/bin/env node ./master.coffee  > ../run/master.out 2>&1 &;
+    nohup /usr/bin/env node ./master.js 2>&1 >> ../logs/nodejs_stdout.log &
   fi
   echo 'master server start!'
+}
+stop() {
+  
 }
 case $cmd in
   start)

@@ -1,6 +1,10 @@
 
-mastersock : ../run/master.sock
+mastersock   : ../run/master.sock
 
-log_dir   : ../logs
+masterpid    : ../run/master.pid
 
-run_dir    : ../run
+log_dir      : ../logs
+
+run_dir      : ../run
+
+staticfloder : ../public
