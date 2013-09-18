@@ -1,6 +1,8 @@
 
 /bin/nohup.out
 
+.DS_Store
+
 /node_modules/
 /run/
 /logs/

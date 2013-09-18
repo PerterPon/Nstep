@@ -8,3 +8,5 @@ log_dir      : ../logs
 run_dir      : ../run
 
 staticfloder : ../public
+
+port         : 8080

@@ -9,7 +9,6 @@ ep         = require 'parevents'
 net        = require 'net'
 fs         = require 'fs'
 connect    = require 'connect'
-middleware = 
 
 class AllInOne
 
@@ -79,7 +78,11 @@ class AllInOne
 
   start : () ->
     @app = connect()
+    @_initMiddleWare()
+    @app.listen @options.port
 
+  _initMiddleWare : ->
+    @app.use '/public/', connect.static path.join __dirname, @options.staticfloder
 
   close : () ->
     @sock.close()
