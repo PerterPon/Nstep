@@ -1,0 +1,5 @@
+#!/usr/bin/env coffee
+
+"use strict"
+
+fs      = require 'fs'

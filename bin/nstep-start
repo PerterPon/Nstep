@@ -1,0 +1,35 @@
+#!/usr/bin/env coffee
+
+"use strict"
+
+net        = require 'net'
+fs         = require 'fs'
+path       = require 'path'
+
+indexFile  = do checkIndexFile() ->
+  fileList = [ process.argv[ 2 ], 'index.coffee', 'index.js' ]
+  for file in fileList
+    file = path.join process.pwd, file
+    return file if fs.existsSync file
+  false
+
+if fs.existsSync workFile
+  console.log 'app file #{workFile} or index file not found! The default file is index.coffee|js!'
+  process.exit()
+else
+  masterSock = "#{path.dirname process.argv[ 1 ]}/run/master.sock"
+  sock = net.connect {
+      path : masterSock
+    },
+    ->
+      sock.write JSON.stringify
+        appFile : indexFile
+  sock.on 'data', ( data ) ->
+    result = JSON.parse data.toString()
+    if result && result.returnCode is 0
+      console.log 'app #{indexFile} start successfull!'
+    else
+      console.log result.msg
+    @close()
+    process.exit()
+

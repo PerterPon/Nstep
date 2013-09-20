@@ -1,7 +1,19 @@
 #!/bin/bash
 cmd=$1
+
 pid=0
-pid_file=`grep '^masterpid' conf/conf.yaml | cut -f 2 -d ':'`
+
+base_path=$(dirname $(dirname $0))
+
+conf_file=$base_path/conf/conf.yaml
+
+pid_file=`grep '^masterpid' $conf_file | cut -f 2 -d ':'`
+
+sock_file=$base_path/run/
+
+nohuplog_file=$base_path/logs/nodejs_stdout.log
+
+master_file=$base_path/bin/
 
 check_pid() {
   if [ -f $pid_file ]; then
@@ -16,10 +28,10 @@ check_pid() {
 }
 
 start() {
-  if [ ! -x 'bin/master.coffee' ]; then
-    nohup /usr/bin/env coffee bin/master.coffee 2>&1 >> ../logs/nodejs_stdout.log &
-  elif [ ! -x 'bin/master.js' ]; then
-    nohup /usr/bin/env node bin/master.js 2>&1 >> ../logs/nodejs_stdout.log &
+  if [ ! -x '$master_file/master.coffee' ]; then
+    nohup /usr/bin/env coffee $master_file/master.coffee 2>&1 >> $nohuplog_file &
+  elif [ ! -x '$master_file/master.js' ]; then
+    nohup /usr/bin/env node $master_file/master.js 2>&1 >> $nohuplog_file &
   fi
   echo 'master server start!'
 }

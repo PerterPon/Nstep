@@ -1,14 +1,15 @@
 
 "use strict"
 
+net        = require 'net'
+http       = require 'http'
 justlog    = require 'justlog'
 os         = require 'options-stream'
 mkdirp     = require 'mkdirp'
 path       = require 'path'
 ep         = require 'parevents'
-net        = require 'net'
 fs         = require 'fs'
-connect    = require 'connect'
+listener   = require './listener'
 
 class AllInOne
 
@@ -29,14 +30,14 @@ class AllInOne
           options.log_dir,
           @
         )
-      ,
       ->
         that._initLogs options.log_dir, @
-      ,
       ->
         that._initSock options.mastersock, @
       ->
         that._initPid options.masterpid, @
+      ->
+        that._initListener {}, @
     ] );
     pipe.on 'drain', callback
     pipe.run()
@@ -76,13 +77,13 @@ class AllInOne
   _initPid : ( file, cb ) ->
     fs.writeFile file, process.pid, cb
 
-  start : () ->
-    @app = connect()
-    @_initMiddleWare()
-    @app.listen @options.port
+  _initListener : () ->
+    @listener = listener()
 
-  _initMiddleWare : ->
-    @app.use '/public/', connect.static path.join __dirname, @options.staticfloder
+  start : () ->
+    tcp = http.createServer ( req, res ) =>
+      
+    tcp.listen 8090
 
   close : () ->
     @sock.close()
