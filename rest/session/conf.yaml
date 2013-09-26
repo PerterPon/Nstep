@@ -1,0 +1,6 @@
+
+middleware  : "sess"
+
+process_num : 2
+
+app_name    : "session"
