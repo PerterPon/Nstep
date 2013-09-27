@@ -17,6 +17,7 @@ class ReverseProxy
     app = @processesPool[ middleware ]
     if app is undefined
       res.end '404'
+      return false
     else
       return app
 

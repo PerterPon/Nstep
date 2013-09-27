@@ -3,7 +3,7 @@
 
 require 'js-yaml'
 http = require 'http'
-conf = require "#{__dirname}/conf.yaml"
+conf = require "./conf.yaml"
 path = require 'path'
 fs   = require 'fs'
 os   = require 'options-stream'

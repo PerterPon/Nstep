@@ -154,7 +154,7 @@ class AllInOne
     socket = null
     app    = http.createServer ( req, res ) =>
       subApp = @proxy.getApp req, res
-      if subApp?
+      if subApp isnt false
         @_distributeMission subApp, req, res
     app.listen @options.port, ( err ) =>
       if err
@@ -168,3 +168,4 @@ class AllInOne
 
 exports = module.exports = ( options, callback ) ->
   new AllInOne options, callback
+  
