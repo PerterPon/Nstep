@@ -1,6 +1,6 @@
 
 middleware  : "sess"
 
-process_num : 2
+process_num : 1
 
 app_name    : "session"

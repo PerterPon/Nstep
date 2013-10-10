@@ -16,7 +16,11 @@ stream     = require 'stream'
 
 class AllInOne
 
-  processesPool : {}
+  processesPool    : []
+
+  psHashName       : {}
+
+  psHashMiddleware : {}
 
   constructor : ( options, callback = -> ) ->
     @options = options = @_mergerOptions( options )
@@ -29,6 +33,8 @@ class AllInOne
   _init : ( options, callback ) ->
     that = this
     pipe = ep( [
+      ->
+        that._initEvents {}, @
       ->
         that._initFloders(
           options.run_dir,
@@ -50,6 +56,9 @@ class AllInOne
     ] );
     pipe.on 'drain', callback
     pipe.run()
+
+  _initEvents : ( options, cb ) ->
+    process.on 'error', () ->
 
   _initFloders : ( floders..., cb ) ->
     pipes = []
@@ -85,11 +94,7 @@ class AllInOne
         that.log.info 'disconnected!'
       c.on 'data', ( data ) ->
         conf = JSON.parse data.toString()
-        that._startWorker conf, c, ->
-          that.log.info "app #{conf.appName} start success"
-          c.write JSON.stringify
-            returnCode : 0
-            message    : "app #{conf.appName} start success"
+        that._workerHelper conf, c
 
     sock.listen sockfile, ( err ) =>
       if err
@@ -105,14 +110,22 @@ class AllInOne
     @listener = listener( conf, cb )
 
   _initProxy : ( conf, cb ) ->
-    @proxy = proxy 
+    @proxy = proxy
       processesPool : @processesPool
     , cb
 
-  _startWorker : ( conf, connect, cb ) ->
-    { appFile }    = conf
+  _workerHelper : ( conf, connect ) ->
+    this[ "_#{conf.action}Worker" ]( conf, ( returnCode = 0, message = '' ) ->
+      connect.write JSON.stringify
+        returnCode : returnCode
+        message    : message
+      connect.end()
+    )
+
+  _startWorker : ( conf, cb ) ->
+    { app_file, middleware } = conf
     try
-      appConfFile  = "#{path.dirname appFile}/conf.yaml"
+      appConfFile  = "#{path.dirname app_file}/conf.yaml"
       appConf      = require appConfFile
     catch e
       connect.write JSON.stringify
@@ -120,29 +133,65 @@ class AllInOne
         message    : e.message
       connect.end()
       return
-    { process_num, middleware, app_name }  = appConf
+    { process_num, app_name }  = appConf
     if @processesPool[ middleware ]
-      usedAppName = @processesPool[ middleware ].appName
+      usedAppName = @processesPool[ middleware ].app_name
       connect.write JSON.stringify
         returnCode : 1
-        message    : "the middleware #{middleware} was used by #{usedAppName}"
+        message    : "the app name #{middleware} was already exists"
       connect.end()
-      @log.info "app: #{app_name} start refused, because of this middleware #{middleware} was used by #{usedAppName}"
+      @log.error "app: #{app_name} start refused, because of this name #{middleware} was already exists."
       return
     process_num    = 1 if !process_num?
     processes      = []
     for i in [ 0...process_num ]
-      processes.push cp.fork appFile
-    @processesPool[ middleware ] = 
-      appName   : app_name
-      appFile   : appFile
-      processes : processes
+      processes.push cp.fork app_file
+    middleware     = conf.middleware
+    @processesPool[ middleware ] =
+      middleware : middleware
+      app_name   : app_name
+      app_file   : app_file
+      processes  : processes
+    process.nextTick cb if cb
+
+  _stopWorker : ( conf, cb ) ->
+    { middleware, app_name } = conf
+    processes = @processesPool[ middleware ].processes
+    for ps in processes
+      ps.exit()
+    @log.info "app: #{app_name} stoped!"
+    process.nextTick cb if cb
+
+  _pauseWorkder : ( conf, cb ) ->
+    { app_name } = conf
+    that = @
+    http.request
+      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
+      headers    : {
+        'x-nstep-stopserver' : 'true'
+      }
+    , ( proxyRes ) ->
+      if proxyRes is 'success'
+        that.log.info 'pause app: #{app_name} success!'
+    process.nextTick cb if cb
+
+  _resumeWorkder : ( conf, cb ) ->
+    { app_name } = conf
+    that = @
+    http.request
+      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
+      headers    : {
+        'x-nstep-startserver' : 'true'
+      }
+    , ( proxyRes ) ->
+      if proxyRes is 'success'
+        that.log.info 'resume app: #{app_name} success!'
     process.nextTick cb if cb
 
   _distributeMission : ( subApp, req, res ) ->
-    { appName } = subApp
+    { app_name } = subApp
     proxy = http.request
-      socketPath : path.join __dirname, @options.run_dir, "#{appName}.sock"
+      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
       headers    : req.headers
       method     : req.method
       path       : req.url
@@ -155,7 +204,10 @@ class AllInOne
     app    = http.createServer ( req, res ) =>
       subApp = @proxy.getApp req, res
       if subApp isnt false
-        @_distributeMission subApp, req, res
+        if ( @_distributeMission subApp, req, res ) is false
+          res.end '404'
+      else
+        res.end '404'
     app.listen @options.port, ( err ) =>
       if err
         @log.error err.message

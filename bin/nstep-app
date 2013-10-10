@@ -1,12 +1,85 @@
 #!/usr/bin/env coffee
 
-fs   = require 'fs'
-path = require 'path'
+require 'js-yaml'
 
+fs      = require 'fs'
+path    = require 'path'
+Parser  = require( 'argparse' ).ArgumentParser
+net     = require 'net'
+version = require( '../package.json' ).version
 
+parser  = new Parser
+  version     : version
+  addHelp     : true
+  description : 'Nstep Web Server'
 
+parser.addArgument(
+  [ 'action' ],
+  {
+    choices : [ 'start', 'stop', 'pause', 'resume' ]
+    help    : 'The action you would like do.'
+  }
+)
+parser.addArgument(
+  [ 'appname' ],
+  {
+    help : 'The app name you would like to operate.'
+  }
+)
 
+args      = parser.parseArgs()
+conf      = null
+indexFile = null
+{ action, appname } = args
 
+if action is 'start'
+  try
+    conf   = require path.join process.cwd(), 'conf.yaml'
+  catch e
+    throw "could not find conf.yaml file in #{process.cwd()}"
+    process.exit()
+  if appname isnt conf.app_name
+    throw "could not find app: #{appname}."
+    process.exit()
+  indexFile  = do checkIndexFile = () ->
+    fileList = [ 'index.js', 'app.js' ]
+    pwd      = process.cwd()
+    for file in fileList
+      file   = "#{pwd}/#{file}"
+      return file if fs.existsSync file
+    throw "could not find start file.They should be index.js or app.js!"
+    process.exit()
+    false
 
+masterConf = require '../conf/conf.yaml'
+
+{ mastersock:masterSock } = masterConf
+  
+app = net.createConnection
+  path : path.join __dirname, masterSock
+, ( err ) ->
+  returnCode = 0
+  if err
+    returnCode = 1
+    message    = err.message
+  app.write JSON.stringify
+    middleware : conf.middleware
+    returnCode : returnCode
+    action     : action
+    app_name   : appname
+    app_file   : indexFile
+    message    : message
+
+app.on 'data', ( data ) ->
+  msg = JSON.parse data.toString()
+  if msg.returnCode is 0
+    console.log "app #{appname} #{action} successfull!"
+  else 
+    console.log msg.message
+  process.exit()
+
+app.on 'error', ( err ) ->
+  throw err
+  process.exit()
 
 

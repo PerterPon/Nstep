@@ -1,4 +1,3 @@
-
 "use strict"
 
 os   = require 'options-stream'
@@ -9,7 +8,7 @@ class ReverseProxy
 
   constructor : ( conf, cb ) ->
     { @processesPool } = conf
-    process.nextTick cb if cb
+    process.nextTick cb if cb 
 
   getApp : ( req, res ) ->
     url = req.url
@@ -20,6 +19,8 @@ class ReverseProxy
       return false
     else
       return app
+
+
 
 exports = module.exports  = ( conf, cb ) ->
   new ReverseProxy conf, cb
