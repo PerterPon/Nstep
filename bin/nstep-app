@@ -32,12 +32,13 @@ conf      = null
 indexFile = null
 { action, appname } = args
 
+try
+  conf    = require path.join process.cwd(), 'conf.yaml'
+catch e
+  throw "could not find conf.yaml file in #{process.cwd()}"
+  process.exit()
+
 if action is 'start'
-  try
-    conf   = require path.join process.cwd(), 'conf.yaml'
-  catch e
-    throw "could not find conf.yaml file in #{process.cwd()}"
-    process.exit()
   if appname isnt conf.app_name
     throw "could not find app: #{appname}."
     process.exit()

@@ -16,7 +16,9 @@ stream     = require 'stream'
 
 class AllInOne
 
-  processesPool    : []
+  processesPool    : {}
+
+  processesPoolByName : {}
 
   psHashName       : {}
 
@@ -67,7 +69,6 @@ class AllInOne
       pipes.push do ( floder )->
         ->
           mkdirp path.join( __dirname, floder ), @
-
     pipe = ep( pipes ).on 'drain', cb
     pipe.run()
     
@@ -75,7 +76,7 @@ class AllInOne
     @log = null
     log_dir = path.join __dirname, log_dir
     if log_dir
-      @log = justlog
+      @log  = justlog
         file :
           level   : justlog.ERROR | justlog.INFO
           path    : "[#{log_dir}/master-]YYYY-MM-DD[.log]"
@@ -99,7 +100,7 @@ class AllInOne
     sock.listen sockfile, ( err ) =>
       if err
         @log.error err
-      else 
+      else
         @log.info 'sock bound!'
       process.nextTick cb if cb
 
@@ -145,9 +146,11 @@ class AllInOne
     process_num    = 1 if !process_num?
     processes      = []
     for i in [ 0...process_num ]
-      processes.push cp.fork app_file
+      processes.push ps = cp.fork app_file
+      ps.process_index  = i
+      ps.send "startserver|#{i}"
     middleware     = conf.middleware
-    @processesPool[ middleware ] =
+    @processesPoolByName[ app_name ] = @processesPool[ middleware ] =
       middleware : middleware
       app_name   : app_name
       app_file   : app_file
@@ -155,43 +158,55 @@ class AllInOne
     process.nextTick cb if cb
 
   _stopWorker : ( conf, cb ) ->
-    { middleware, app_name } = conf
+    { app_name }   = conf
+    { middleware } = @processesPoolByName[ app_name ].middleware
     processes = @processesPool[ middleware ].processes
     for ps in processes
-      ps.exit()
+      ps.kill()
     @log.info "app: #{app_name} stoped!"
+    delete @processesPool[ middleware ]
+    delete @processesPoolByName[ app_name ]
     process.nextTick cb if cb
 
   _pauseWorkder : ( conf, cb ) ->
-    { app_name } = conf
-    that = @
-    http.request
-      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
-      headers    : {
-        'x-nstep-stopserver' : 'true'
-      }
-    , ( proxyRes ) ->
-      if proxyRes is 'success'
-        that.log.info 'pause app: #{app_name} success!'
+    { app_name }   = conf
+    { middleware } = @processesPoolByName[ app_name ].middleware
+    @processesPool[ middleware ].refused = true
+    # { app_name } = conf
+    # that = @
+    # http.request
+    #   socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
+    #   headers    : {
+    #     'x-nstep-stopserver' : 'true'
+    #   }
+    # , ( proxyRes ) ->
+    #   if proxyRes is 'success'
+    #     that.log.info 'pause app: #{app_name} success!'
     process.nextTick cb if cb
 
   _resumeWorkder : ( conf, cb ) ->
-    { app_name } = conf
-    that = @
-    http.request
-      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
-      headers    : {
-        'x-nstep-startserver' : 'true'
-      }
-    , ( proxyRes ) ->
-      if proxyRes is 'success'
-        that.log.info 'resume app: #{app_name} success!'
+    { app_name }   = conf
+    { middleware } = @processesPoolByName[ app_name ].middleware
+    @processesPool[ middleware ].refused = true
+
+    # { app_name } = conf
+    # that = @
+    # http.request
+    #   socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
+    #   headers    : {
+    #     'x-nstep-startserver' : 'true'
+    #   }
+    # , ( proxyRes ) ->
+    #   if proxyRes is 'success'
+    #     that.log.info 'resume app: #{app_name} success!'
     process.nextTick cb if cb
 
   _distributeMission : ( subApp, req, res ) ->
-    { app_name } = subApp
+    { processes, app_name } = subApp
+    processes.push ps = processes.shift()
+    { process_index:index } = ps
     proxy = http.request
-      socketPath : path.join __dirname, @options.run_dir, "#{app_name}.sock"
+      socketPath : path.join __dirname, @options.run_dir, "#{app_name}_#{index}.sock"
       headers    : req.headers
       method     : req.method
       path       : req.url

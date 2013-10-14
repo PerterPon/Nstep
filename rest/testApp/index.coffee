@@ -3,18 +3,26 @@
 
 require 'js-yaml'
 http = require 'http'
-conf = require './conf.yaml'
+conf = require "./conf.yaml"
 path = require 'path'
 fs   = require 'fs'
 os   = require 'options-stream'
 
 basePath = process.env.PWD
 
-do initProcess  = () ->
-  sockFile   = path.join basePath, 'run', "#{conf.app_name}.sock"
+working  = true
+
+initProcess  = ( index ) ->
+  sockFile   = path.join basePath, 'run', "#{conf.app_name}_#{index}.sock"
   if fs.existsSync sockFile
     fs.unlinkSync sockFile
 
-  app  = http.createServer ( req, res ) ->
-    res.end 'test app!'
+  app = http.createServer ( req, res ) ->
+    resContent = 'testapp'+index
+    res.end resContent
   app.listen sockFile
+
+process.on 'message', ( eventName ) ->
+  if eventName.indexOf( 'startserver' ) >= 0
+    param = eventName.split '|'
+    initProcess param[ 1 ]

@@ -14,13 +14,12 @@ class ReverseProxy
     url = req.url
     [ point, middleware ] = url.split '/'
     app = @processesPool[ middleware ]
-    if app is undefined
+    { refused } = app if app
+    if ( app is undefined ) or ( refused is true )
       res.end '404'
       return false
     else
       return app
-
-
 
 exports = module.exports  = ( conf, cb ) ->
   new ReverseProxy conf, cb

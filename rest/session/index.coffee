@@ -12,25 +12,17 @@ basePath = process.env.PWD
 
 working  = true
 
-do initProcess  = () ->
-  sockFile   = path.join basePath, 'run', "#{conf.app_name}.sock"
+initProcess  = ( index ) ->
+  sockFile   = path.join basePath, 'run', "#{conf.app_name}_#{index}.sock"
   if fs.existsSync sockFile
     fs.unlinkSync sockFile
 
   app = http.createServer ( req, res ) ->
-    resContent   = ''
-    if req.headers[ 'x-nstep-stopserver' ]
-      working    = false
-      resContent = 'success'
-    else if req.headers[ 'x-nstep-startserver' ]
-      working    = true
-      resContent = 'success'
-    if resContent isnt ''
-      res.end resContent
-      return
-    if working
-      resContent = 'session'
-    else 
-      resContent = '404'
+    resContent = 'session'+index
     res.end resContent
   app.listen sockFile
+
+process.on 'message', ( eventName ) ->
+  if eventName.indexOf( 'startserver' ) >= 0
+    param = eventName.split '|'
+    initProcess param[ 1 ]
