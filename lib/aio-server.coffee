@@ -150,11 +150,13 @@ class AllInOne
       ps.process_index  = i
       ps.send "startserver|#{i}"
     middleware     = conf.middleware
-    @processesPoolByName[ app_name ] = @processesPool[ middleware ] =
+    @processesPool[ middleware ] || ( @processesPool[ middleware ] = [] )
+    @processesPool[ middleware ].push @processesPoolByName[ app_name ] =
       middleware : middleware
       app_name   : app_name
       app_file   : app_file
       processes  : processes
+
     process.nextTick cb if cb
 
   _stopWorker : ( conf, cb ) ->
@@ -218,11 +220,18 @@ class AllInOne
     socket = null
     app    = http.createServer ( req, res ) =>
       subApp = @proxy.getApp req, res
-      if subApp isnt false
+      if subApp is false
+        res.end '404'
+      else if subApp is undefined
+        return
+      else
         if ( @_distributeMission subApp, req, res ) is false
           res.end '404'
-      else
-        res.end '404'
+      # if subApp isnt false
+      #   if ( @_distributeMission subApp, req, res ) is false
+      #     res.end '404'
+      # else
+      #   res.end '404'
     app.listen @options.port, ( err ) =>
       if err
         @log.error err.message

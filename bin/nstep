@@ -1,74 +1,86 @@
-#!/bin/bash
-cmd=$1
+#!/usr/bin/env coffee
 
-pid=0
+require 'js-yaml'
 
-base_path=$(dirname $(dirname $0))
+fs      = require 'fs'
+path    = require 'path'
+Parser  = require( 'argparse' ).ArgumentParser
+net     = require 'net'
+version = require( '../package.json' ).version
 
-conf_file=$base_path/conf/conf.yaml
+parser  = new Parser
+  version     : version
+  addHelp     : true
+  description : 'Nstep Web Server'
 
-# pid_file=`grep '^masterpid' $conf_file | cut -f 2 -d ':'`
+parser.addArgument(
+  [ 'action' ],
+  {
+    choices : [ 'start', 'stop', 'pause', 'resume' ]
+    help    : 'The action you would like do.'
+  }
+)
+parser.addArgument(
+  [ 'appname' ],
+  {
+    help : 'The app name you would like to operate.'
+  }
+)
 
-pid_file=$base_path/run/master.pid
+args      = parser.parseArgs()
+conf      = null
+indexFile = null
+{ action, appname } = args
 
-sock_file=$base_path/run/
+try
+  conf    = require path.join process.cwd(), 'conf.yaml'
+catch e
+  throw "could not find conf.yaml file in #{process.cwd()}"
+  process.exit()
 
-nohuplog_file=$base_path/logs/nodejs_stdout.log
+if action is 'start'
+  if appname isnt conf.app_name
+    throw "could not find app: #{appname}."
+    process.exit()
+  indexFile  = do checkIndexFile = () ->
+    fileList = [ 'index.js', 'app.js' ]
+    pwd      = process.cwd()
+    for file in fileList
+      file   = "#{pwd}/#{file}"
+      return file if fs.existsSync file
+    throw "could not find start file.They should be index.js or app.js!"
+    process.exit()
+    false
 
-master_file=$base_path/bin
+masterConf = require '../conf/conf.yaml'
 
-check_pid() {
-  if [ -f $pid_file ]; then
-    pid=`cat $pid_file`
-  else
-    return 1
-  fi
-  if [ `ps -A -o 'pid' | grep -c "^ *$pid"` -eq 1 ]; then
-    return 0
-  fi
-  return 2
-}
+{ mastersock:masterSock } = masterConf
+  
+app = net.createConnection
+  path : path.join __dirname, masterSock
+, ( err ) ->
+  returnCode = 0
+  if err
+    returnCode = 1
+    message    = err.message
+  app.write JSON.stringify
+    middleware : conf.middleware
+    returnCode : returnCode
+    action     : action
+    app_name   : appname
+    app_file   : indexFile
+    message    : message
 
-start() {
-  if [ ! -x '$master_file/master.coffee' ]; then
-    nohup /usr/bin/env coffee $master_file/master.coffee 2>&1 >> $nohuplog_file &
-  elif [ ! -x '$master_file/master.js' ]; then
-    nohup /usr/bin/env node $master_file/master.js 2>&1 >> $nohuplog_file &
-  fi
-  echo 'master server start!'
-}
+app.on 'data', ( data ) ->
+  msg = JSON.parse data.toString()
+  if msg.returnCode is 0
+    console.log "app #{appname} #{action} successfull!"
+  else 
+    console.log msg.message
+  process.exit()
 
-stop() {
-  typeset pid
-  check_pid;
-  if [ $? -ne 0 ]; then
-    echo 'Not Running!'
-    return $?
-  fi
-  kill -9 $pid
+app.on 'error', ( err ) ->
+  throw err
+  process.exit()
 
-  for ((i=0; i<2; i++)); do
-    check_pid;
-    if [ $? -ne 0 ]; then
-      echo
-      echo "Stopped."
-      return 0
-    fi
-    echo -n '.'
-    sleep 0.5
-  done
-  echo ''
-  echo "Stop Service Timeout."
-  return 3
-}
 
-case $cmd in
-  start)
-    start;
-    exit $?;
-  ;;
-  stop)
-    stop;
-    exit $?;
-  ;;
-esac
