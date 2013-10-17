@@ -1,0 +1,74 @@
+#!/bin/bash
+cmd=$1
+
+pid=0
+
+base_path=$(dirname $(dirname $0))
+
+conf_file=$base_path/conf/conf.yaml
+
+# pid_file=`grep '^masterpid' $conf_file | cut -f 2 -d ':'`
+
+pid_file=$base_path/run/master.pid
+
+sock_file=$base_path/run/
+
+nohuplog_file=$base_path/logs/nodejs_stdout.log
+
+master_file=$base_path/bin
+
+check_pid() {
+  if [ -f $pid_file ]; then
+    pid=`cat $pid_file`
+  else
+    return 1
+  fi
+  if [ `ps -A -o 'pid' | grep -c "^ *$pid"` -eq 1 ]; then
+    return 0
+  fi
+  return 2
+}
+
+start() {
+  if [ ! -x '$master_file/master.coffee' ]; then
+    nohup /usr/bin/env coffee $master_file/master.coffee 2>&1 >> $nohuplog_file &
+  elif [ ! -x '$master_file/master.js' ]; then
+    nohup /usr/bin/env node $master_file/master.js 2>&1 >> $nohuplog_file &
+  fi
+  echo 'master server start!'
+}
+
+stop() {
+  typeset pid
+  check_pid;
+  if [ $? -ne 0 ]; then
+    echo 'Not Running!'
+    return $?
+  fi
+  kill -9 $pid
+
+  for ((i=0; i<2; i++)); do
+    check_pid;
+    if [ $? -ne 0 ]; then
+      echo
+      echo "Stopped."
+      return 0
+    fi
+    echo -n '.'
+    sleep 0.5
+  done
+  echo ''
+  echo "Stop Service Timeout."
+  return 3
+}
+
+case $cmd in
+  start)
+    start;
+    exit $?;
+  ;;
+  stop)
+    stop;
+    exit $?;
+  ;;
+esac
