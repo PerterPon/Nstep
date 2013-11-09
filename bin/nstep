@@ -7,6 +7,7 @@ path    = require 'path'
 Parser  = require( 'argparse' ).ArgumentParser
 net     = require 'net'
 version = require( '../package.json' ).version
+conf    = require '../conf/conf.yaml'
 
 parser  = new Parser
   version     : version

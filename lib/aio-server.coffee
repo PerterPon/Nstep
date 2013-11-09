@@ -13,6 +13,9 @@ listener   = require './listener'
 cp         = require 'child_process'
 proxy      = require './reverseProxy'
 stream     = require 'stream'
+worker     = require './workerGuider'
+util       = require '../util/util'
+captain    = require './captain'
 
 class AllInOne
 
@@ -125,22 +128,25 @@ class AllInOne
 
   _startWorker : ( conf, cb ) ->
     { app_file, middleware } = conf
+    that = @
+    # try
+    #   appConfFile  = "#{path.dirname app_file}/conf.yaml"
+    #   appConf      = require appConfFile
+    # catch e
+    #   connect.write JSON.stringify
+    #     returnCode : 1
+    #     message    : e.message
+    #   connect.end()
+    #   return
     try
-      appConfFile  = "#{path.dirname app_file}/conf.yaml"
-      appConf      = require appConfFile
+      appConfFile = "#{path.dirname app_file}/conf.yaml"
     catch e
-      connect.write JSON.stringify
-        returnCode : 1
-        message    : e.message
-      connect.end()
+      util.output connect, 1, e.message
       return
     { process_num, app_name }  = appConf
     if @processesPool[ middleware ]
       usedAppName = @processesPool[ middleware ].app_name
-      connect.write JSON.stringify
-        returnCode : 1
-        message    : "the app name #{middleware} was already exists"
-      connect.end()
+      util.output connect, 1, "the app name #{middleware} was already exists"
       @log.error "app: #{app_name} start refused, because of this name #{middleware} was already exists."
       return
     process_num    = 1 if !process_num?
@@ -148,7 +154,7 @@ class AllInOne
     for i in [ 0...process_num ]
       processes.push ps = cp.fork app_file
       ps.process_index  = i
-      ps.send "startserver|#{i}"
+      ps.send "startServer|#{i}"
     middleware     = conf.middleware
     @processesPool[ middleware ] || ( @processesPool[ middleware ] = [] )
     @processesPool[ middleware ].push @processesPoolByName[ app_name ] =

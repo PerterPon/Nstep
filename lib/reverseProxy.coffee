@@ -16,16 +16,17 @@ class ReverseProxy
     res.on 'finish', () ->
       finished = true
     [ point, middleware ] = url.split '/'
-    if middleware is 'favicon.ico'
+    if middleware is 'favicon.ico' or ( apps = @processesPool[ middleware ] ) is undefined or apps.length is 0
       return false
-    apps     = @processesPool[ middleware ]
+    # apps     = @processesPool[ middleware ]
+    # if !apps || !apps.length
+    #   return false
     for app in apps
       if finished
         res.end = () ->
         return
       { refused } = app if app
       if ( app is undefined ) or ( refused is true )
-        res.end '404'
         return false
       else
         return app

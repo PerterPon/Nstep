@@ -10,3 +10,7 @@ run_dir      : ../run
 staticfloder : ../public
 
 port         : 8000
+
+default      : 
+  - session
+  - testapp
